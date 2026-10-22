@@ -41,5 +41,5 @@ async function handle(request:Request){try{
   return json({ok:true},200,await createSession(request,invite.email));
  }
  authFail('Ruta no encontrada.',404);
- }catch(e:any){return json({error:e.status?e.message:'No fue posible completar la solicitud. Inténtalo nuevamente.'},e.status||500);}}
+ }catch(e:any){if(!e.status)console.error('HSMI_SERVER_ERROR',{code:String(e.code||e.cause?.code||'UNKNOWN')});return json({error:e.status?e.message:'No fue posible completar la solicitud. Inténtalo nuevamente.'},e.status||500);}}
 export const GET=handle;export const POST=handle;
