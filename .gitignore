@@ -1,0 +1,10 @@
+.next/
+node_modules/
+.env*
+!.env.example
+work/
+outputs/
+data/padron*.json
+*.tsbuildinfo
+.sites-runtime/
+.vercel/

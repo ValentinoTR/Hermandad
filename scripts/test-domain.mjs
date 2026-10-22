@@ -1,0 +1,14 @@
+import assert from 'node:assert/strict';
+import {condition,applyPayment,paidAmount} from '../lib/domain.ts';
+const concepts=[{id:'cuota',name:'Cuota',year:2026,amount:5000},{id:'rifa',name:'Rifa',year:2026,amount:null},{id:'old',name:'Bingo',year:2025,amount:null}];
+const member=()=>({id:'test',name:'Prueba',group:'Prueba',revision:0,data:{payments:[],obligations:{cuota:{state:'pending',amountCents:5000,reason:''},rifa:{state:'na',amountCents:null,reason:'No recibió rifas'},old:{state:'paid',amountCents:null,reason:''}}}});
+let m=member();assert.equal(condition(m,concepts,2026),'Inactivo');
+applyPayment(m,concepts[0],{id:'1',conceptId:'cuota',amountCents:2000},5000);assert.equal(m.data.obligations.cuota.state,'partial');assert.equal(condition(m,concepts,2026),'Inactivo');
+applyPayment(m,concepts[0],{id:'2',conceptId:'cuota',amountCents:3000},5000);assert.equal(paidAmount(m,'cuota'),5000);assert.equal(condition(m,concepts,2026),'Activo');
+assert.throws(()=>applyPayment(m,concepts[0],{id:'3',conceptId:'cuota',amountCents:100},5000),/pagado/);
+m.data.obligations.old.state='review';assert.equal(condition(m,concepts,2026),'Por revisar');assert.equal(condition(m,concepts,2026,'annual'),'Activo');
+m.data.obligations.cuota.state='na';assert.equal(condition(m,concepts,2026,'annual'),'Sin obligaciones');
+assert.throws(()=>applyPayment(m,concepts[1],{id:'4',conceptId:'rifa',amountCents:100},5000),/no aplica/);
+m=member();assert.throws(()=>applyPayment(m,concepts[0],{id:'5',conceptId:'cuota',amountCents:6000},5000),/supera/);assert.throws(()=>applyPayment(m,concepts[0],{id:'6',conceptId:'cuota',amountCents:0},5000),/válidos/);
+assert.equal(condition(member(),concepts,2024),'Por revisar');
+console.log('PASS: NA, acumulado y anual, datos faltantes, abonos, cierre, sobrepago y ceros.');
