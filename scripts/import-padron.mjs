@@ -15,7 +15,7 @@ try{
   for(const [table,columns] of Object.entries(defs)){
    for(let i=0;i<b[table].length;i+=50){
     const rows=b[table].slice(i,i+50).map(r=>Object.fromEntries(columns.map(c=>[c,r[c]??(c==='last_mutation'?'':null)])));
-    if(rows.length)await tx`insert into ${tx('hsmi',table)} ${tx(rows,columns)}`;
+    if(rows.length)await tx`insert into ${tx('hsmi.'+table)} ${tx(rows,columns)}`;
    }
   }
  });
