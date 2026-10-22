@@ -20,7 +20,7 @@ export async function limitAuth(request:Request,email=''){
  const ip=(process.env.VERCEL?request.headers.get('x-vercel-forwarded-for'):request.headers.get('cf-connecting-ip'))||'local';const now=Date.now(),until=now+15*60*1000;
  const keys=[await digest('ip:'+ip),await digest('email:'+email.toLowerCase())];
  for(let i=0;i<keys.length;i++){
-  await authDb().prepare('INSERT INTO auth_limits(key,attempts,expires_at) VALUES(?,1,?) ON CONFLICT(key) DO UPDATE SET attempts=CASE WHEN expires_at<? THEN 1 ELSE attempts+1 END,expires_at=CASE WHEN expires_at<? THEN excluded.expires_at ELSE expires_at END').bind(keys[i],until,now,now).run();
+  await authDb().prepare('INSERT INTO auth_limits AS current_limit(key,attempts,expires_at) VALUES(?,1,?) ON CONFLICT(key) DO UPDATE SET attempts=CASE WHEN current_limit.expires_at<? THEN 1 ELSE current_limit.attempts+1 END,expires_at=CASE WHEN current_limit.expires_at<? THEN excluded.expires_at ELSE current_limit.expires_at END').bind(keys[i],until,now,now).run();
   const v=await authDb().prepare('SELECT attempts FROM auth_limits WHERE key=?').bind(keys[i]).first<{attempts:number}>();if(v!.attempts>(i===0?60:10))authFail('Demasiados intentos. Vuelve a intentarlo en 15 minutos.',429);
  }
 }
