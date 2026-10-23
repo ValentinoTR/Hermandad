@@ -31,3 +31,7 @@ Las sesiones tienen cookies HttpOnly, SameSite=Strict y Secure en HTTPS. Los rol
 Este repositorio público solo contiene código, el emblema y el catálogo de conceptos. No subas Excel, respaldos, nombres de integrantes ni archivos `.env`. Los respaldos contienen información personal y deben almacenarse con acceso restringido.
 
 El esquema y el usuario propios separan HSMI de otras aplicaciones, pero al usar el mismo proyecto de Supabase comparten capacidad, límites, mantenimiento y disponibilidad. Para independencia completa, usa un proyecto separado. Revisa los límites de tu plan al aumentar el uso.
+
+## Comprobantes PDF
+
+Al guardar un pago, el navegador solicita la descarga del comprobante interno PDF. Si el navegador la bloquea, el aviso de pago guardado y los enlaces del historial permiten descargarlo sin repetir el pago. El identificador es el ID único del pago, se conservan los datos originales de los nuevos registros y las descargas de pagos anulados llevan la marca ANULADO. Se requiere sesión para acceder a cada PDF. El sistema no genera comprobantes para las marcas históricas P que carecen de importe y fecha.

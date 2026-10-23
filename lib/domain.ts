@@ -1,6 +1,6 @@
 export type State = 'paid'|'na'|'pending'|'review'|'partial';
 export type Obligation = {state:State;amountCents:number|null;reason:string;sourceCode?:string;historical?:boolean};
-export type Payment = {id:string;conceptId:string;date:string;amountCents:number;method:string;receipt:string;note:string;actor:string;voidReason?:string};
+export type Payment = {id:string;conceptId:string;date:string;amountCents:number;method:string;receipt:string;note:string;actor:string;voidReason?:string;recordedAt?:string;receiptSnapshot?:{memberName:string;memberCode:string;group:string;conceptName:string;conceptYear:number;actorName:string}};
 export type Member = {id:string;name:string;group:string;revision:number;data:{sourceRow?:number;sourceItem?:string;sourceNote?:string;duplicate?:boolean;obligations:Record<string,Obligation>;payments:Payment[]}};
 export type Concept = {id:string;year:number;name:string;amount:number|null};
 export type AppUser = {email:string;name:string;role:'admin'|'treasurer'|'viewer'};

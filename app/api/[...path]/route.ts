@@ -2,6 +2,9 @@ import {getDatabase} from '../../../lib/database';
 import {requireUser,createInvite} from '../../../lib/auth';
 import {importOriginal} from '../../../lib/initial-data';
 import catalog from '../../../data/catalog.json';
+import {readFile} from 'node:fs/promises';
+import pathModule from 'node:path';
+import {paymentReceipt} from '../../../lib/receipt.mjs';
 import {applyPayment,getObligation,paidAmount,type Member,type Concept,type AppUser,type State} from '../../../lib/domain';
 export const dynamic='force-dynamic';
 export const runtime='nodejs';
@@ -26,6 +29,14 @@ async function handle(request:Request){try{
  const user=await requireUser(request);
  if(request.method==='GET'){
   if(path==='changes'){const row=await db().prepare('SELECT id FROM audit ORDER BY at DESC,id DESC LIMIT 1').first<{id:string}>();return json({id:row?.id||''});}
+  if(path==='receipt'){
+   const m=await member(txt(url.searchParams.get('memberId'))),payment=m.data.payments.find(p=>p.id===txt(url.searchParams.get('paymentId'),100));
+   if(!payment)fail('El pago no existe.',404);
+   const c=await concept(payment.conceptId);
+   const bytes=await paymentReceipt({member:m,concept:c,payment,logo:await readFile(pathModule.join(process.cwd(),'public','hsmi-emblema.png'))});
+   const name='HSMI-comprobante-'+payment.id.replace(/[^a-zA-Z0-9-]/g,'')+'.pdf';
+   return new Response(new Uint8Array(bytes),{headers:{'Content-Type':'application/pdf','Content-Disposition':`attachment; filename="${name}"`,'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'}});
+  }
   if(path==='state'){
    const [m,c,a,meta,u]=await Promise.all([
     db().prepare('SELECT * FROM members ORDER BY name COLLATE NOCASE').all<any>(),db().prepare('SELECT * FROM concepts ORDER BY year,id').all<Concept>(),
@@ -77,12 +88,12 @@ async function handle(request:Request){try{
   const m=await member(txt(b.memberId));const revision=Number(b.revision);if(!Number.isInteger(revision))fail('Actualiza el registro antes de guardar.');
   const requestId=txt(b.requestId,100)||crypto.randomUUID();
   if(path==='payment'){
-   if(m.data.payments.some(p=>p.id===requestId))return json({ok:true,alreadySaved:true});
+   if(m.data.payments.some(p=>p.id===requestId))return json({ok:true,alreadySaved:true,memberId:m.id,paymentId:requestId});
    const c=await concept(txt(b.conceptId));const date=txt(b.date,10);
    if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||Number.isNaN(Date.parse(date))||new Date(date).toISOString().slice(0,10)!==date)fail('Ingresa una fecha válida.');
    const method=txt(b.method,40);if(!['Efectivo','Transferencia','Yape','Plin','Otro'].includes(method))fail('Selecciona un medio de pago.');
-   const p={id:requestId,conceptId:c.id,date,amountCents:Number(b.amountCents),method,receipt:txt(b.receipt,150),note:txt(b.note,1000),actor:user.email};
-   applyPayment(m,c,p,Number(b.expectedCents));return await save(m,revision,user.email,'Pago registrado',{...p,concept:`${c.name} ${c.year}`},requestId);
+   const p={id:requestId,conceptId:c.id,date,amountCents:Number(b.amountCents),method,receipt:txt(b.receipt,150),note:txt(b.note,1000),actor:user.email,recordedAt:new Date().toISOString(),receiptSnapshot:{memberName:m.name,memberCode:m.id,group:m.group,conceptName:c.name,conceptYear:c.year,actorName:user.name}};
+   applyPayment(m,c,p,Number(b.expectedCents));await save(m,revision,user.email,'Pago registrado',{...p,concept:`${c.name} ${c.year}`},requestId);return json({ok:true,memberId:m.id,paymentId:p.id});
   }
   if(path==='obligation'){
    const c=await concept(txt(b.conceptId)),before=getObligation(m,c),state=txt(b.state) as State,reason=txt(b.reason,1000);
