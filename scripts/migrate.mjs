@@ -7,6 +7,7 @@ try{
   const [row]=await tx`select to_regnamespace('hsmi') is not null as exists`;
   if(row.exists)throw new Error('hsmi ya existe. Esta instalación inicial no modifica esquemas existentes.');
   await tx.unsafe(await readFile(new URL('../database/hsmi.sql',import.meta.url),'utf8'));
+  await tx.unsafe(await readFile(new URL('../database/receipt-numbers.sql',import.meta.url),'utf8'));
  });
  console.log('Esquema HSMI creado. Configura el acceso privado hsmi_app desde la administración de Supabase.');
 }finally{await sql.end();}

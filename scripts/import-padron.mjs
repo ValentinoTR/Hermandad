@@ -4,8 +4,9 @@ const file=process.argv[2];
 if(!file||!process.env.DATABASE_URL)throw new Error('Usa DATABASE_URL y npm run db:import -- /ruta/respaldo.json');
 const b=JSON.parse(await readFile(file,'utf8'));
 if(b.format!=='hsmi-backup-v1'||!Array.isArray(b.members)||!Array.isArray(b.concepts)||!Array.isArray(b.audit))throw new Error('Respaldo no válido.');
-const defs={members:['id','name','group_name','data','revision','last_mutation'],concepts:['id','year','name','amount'],audit:['id','at','actor','action','member_id','detail'],settings:['key','value']};
+const defs={members:['id','name','group_name','data','revision','last_mutation'],concepts:['id','year','name','amount'],audit:['id','at','actor','action','member_id','detail'],settings:['key','value'],receipt_counters:['year','last_number'],receipt_numbers:['payment_id','year','number']};
 for(const m of b.members){const data=JSON.parse(m.data);if(!m.id||!m.name||!data.obligations||!Array.isArray(data.payments))throw new Error('Integrante no válido.');}
+b.receipt_numbers=b.receipt_numbers||[];b.receipt_counters=b.receipt_counters||[];
 b.settings=(b.settings||[]).filter(s=>s.key==='import');
 const sql=postgres(process.env.DATABASE_URL,{prepare:false,max:1,ssl:'require'});
 try{

@@ -16,3 +16,14 @@ export class Statement{
  async run(){return this.execute();}
 }
 export function getDatabase(){return {prepare:(sql:string)=>new Statement(sql),batch:async(statements:Statement[])=>getClient().begin(async(tx:any)=>{const result=[];for(const statement of statements)result.push(await statement.execute(tx));return result;})};}
+export async function receiptNumber(paymentId:string,year:number){
+ if(!Number.isInteger(year)||year<1900||year>2200)throw new Error('Año de comprobante inválido.');
+ return getClient().begin(async(tx:any)=>{
+  await tx`select pg_advisory_xact_lock(hashtext('hsmi-receipts'),${year})`;
+  const existing=await tx`select year,number from hsmi.receipt_numbers where payment_id=${paymentId}`;
+  if(existing[0])return String(existing[0].number).padStart(5,'0')+'-'+existing[0].year+'HSMI';
+  const [row]=await tx`insert into hsmi.receipt_counters(year,last_number) values(${year},1) on conflict(year) do update set last_number=hsmi.receipt_counters.last_number+1 returning last_number`;
+  await tx`insert into hsmi.receipt_numbers(payment_id,year,number) values(${paymentId},${year},${row.last_number})`;
+  return String(row.last_number).padStart(5,'0')+'-'+year+'HSMI';
+ });
+}

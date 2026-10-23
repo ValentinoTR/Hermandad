@@ -1,4 +1,4 @@
-import {getDatabase} from '../../../lib/database';
+import {getDatabase,receiptNumber} from '../../../lib/database';
 import {requireUser,createInvite} from '../../../lib/auth';
 import {importOriginal} from '../../../lib/initial-data';
 import catalog from '../../../data/catalog.json';
@@ -33,7 +33,7 @@ async function handle(request:Request){try{
    const m=await member(txt(url.searchParams.get('memberId'))),payment=m.data.payments.find(p=>p.id===txt(url.searchParams.get('paymentId'),100));
    if(!payment)fail('El pago no existe.',404);
    const c=await concept(payment.conceptId);
-   const bytes=await paymentReceipt({member:m,concept:c,payment,logo:await readFile(pathModule.join(process.cwd(),'public','hsmi-emblema.png'))});
+   const bytes=await paymentReceipt({member:m,concept:c,payment,receiptNumber:await receiptNumber(payment.id,Number(payment.date.slice(0,4))),logo:await readFile(pathModule.join(process.cwd(),'public','hsmi-emblema.png'))});
    const name='HSMI-comprobante-'+payment.id.replace(/[^a-zA-Z0-9-]/g,'')+'.pdf';
    return new Response(new Uint8Array(bytes),{headers:{'Content-Type':'application/pdf','Content-Disposition':`attachment; filename="${name}"`,'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'}});
   }
@@ -47,8 +47,8 @@ async function handle(request:Request){try{
   }
   if(path==='backup'){
    if(user.role!=='admin')fail('Solo administración puede descargar el respaldo completo.',403);
-   const [m,c,a,s]=await Promise.all(['members','concepts','audit','settings'].map(t=>db().prepare(`SELECT * FROM ${t}`).all()));
-   return new Response(JSON.stringify({format:'hsmi-backup-v1',exportedAt:new Date().toISOString(),members:m.results,concepts:c.results,audit:a.results,settings:s.results},null,2),{headers:{'Content-Type':'application/json','Content-Disposition':'attachment; filename="hsmi-respaldo.json"','Cache-Control':'no-store'}});
+   const [m,c,a,s,r,n]=await Promise.all(['members','concepts','audit','settings','hsmi.receipt_numbers','hsmi.receipt_counters'].map(t=>db().prepare(`SELECT * FROM ${t}`).all()));
+   return new Response(JSON.stringify({format:'hsmi-backup-v1',exportedAt:new Date().toISOString(),members:m.results,concepts:c.results,audit:a.results,settings:s.results,receipt_numbers:r.results,receipt_counters:n.results},null,2),{headers:{'Content-Type':'application/json','Content-Disposition':'attachment; filename="hsmi-respaldo.json"','Cache-Control':'no-store'}});
   }
   fail('Ruta no encontrada.',404);
  }

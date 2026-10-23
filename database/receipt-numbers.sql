@@ -1,0 +1,10 @@
+create table hsmi.receipt_counters(year integer primary key,last_number integer not null check(last_number>0));
+create table hsmi.receipt_numbers(payment_id text primary key,year integer not null,number integer not null,unique(year,number));
+alter table hsmi.receipt_counters enable row level security;
+alter table hsmi.receipt_counters force row level security;
+alter table hsmi.receipt_numbers enable row level security;
+alter table hsmi.receipt_numbers force row level security;
+revoke all on hsmi.receipt_counters,hsmi.receipt_numbers from public,anon,authenticated;
+grant select,insert,update on hsmi.receipt_counters,hsmi.receipt_numbers to hsmi_app;
+create policy hsmi_server on hsmi.receipt_counters for all to hsmi_app using(true) with check(true);
+create policy hsmi_server on hsmi.receipt_numbers for all to hsmi_app using(true) with check(true);
